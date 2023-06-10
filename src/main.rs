@@ -1,6 +1,4 @@
-use sqlx::{MySql, MySqlPool, Pool};
-
-const DB_URL: &str = "mysql://root:root@localhost:3306/workforce_deb";
+use sqlx::{query, Executor, MySql, MySqlPool, Pool};
 
 struct MySqlConnection {
     pool: MySqlPool,
@@ -19,13 +17,11 @@ struct DBConnectionBuilder {
 
 impl DBConnectionBuilder {
     fn new() -> Self {
-        Self {
-            pool: None,
-        }
+        Self { pool: None }
     }
 
-    async fn pool(mut self, db_url: &str) -> Self {
-        let pool = MySqlPool::connect(db_url).await.unwrap();
+    async fn establish(mut self, db_url: String) -> Self {
+        let pool = MySqlPool::connect(&db_url).await.unwrap();
         self.pool = Some(pool);
         self
     }
@@ -33,14 +29,28 @@ impl DBConnectionBuilder {
     fn build(self) -> MySqlConnection {
         let pool = self.pool.unwrap();
 
-        MySqlConnection {
-            pool,
-        }
+        MySqlConnection { pool }
     }
 }
 
 #[tokio::main]
 async fn main() {
-    let connection: MySqlConnection = DBConnectionBuilder::new().pool(DB_URL).await.build();
+    let db_url = &std::env::set_var(
+        "DATABASE_URL",
+        "mysql://root:root@localhost:3306/workforce_db",
+    );
+
+    let connection: MySqlConnection = DBConnectionBuilder::new()
+        .establish(std::env::var("DATABASE_URL").unwrap())
+        .await
+        .build();
+
     let pool = connection.pool();
+
+    let seed_db = sqlx::query!("CREATE DATABASE IF NOT EXISTS workforce_db")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    println!("{:#?}", seed_db);
 }

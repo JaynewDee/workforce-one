@@ -7,4 +7,7 @@ edition = "2021"
 
 [dependencies]
 sqlx = { version = "0.6.3", features = [ "runtime-tokio-native-tls", "mysql", "macros" ] }
-tokio = { version = "1.28.2", features = ["macros"] }
+tokio = { version = "1.28.1", features = ["macros"] }
+
+[env]
+DATABASE_URL = "mysql://root:root@localhost:3306/workforce_db"
