@@ -1,4 +1,4 @@
-use sqlx::{query, Executor, MySql, MySqlPool, Pool};
+use sqlx::{mysql::MySqlQueryResult, MySql, MySqlPool, Pool};
 
 struct MySqlConnection {
     pool: MySqlPool,
@@ -33,24 +33,31 @@ impl DBConnectionBuilder {
     }
 }
 
+struct DBConnectionHandler {
+    connection: MySqlConnection,
+}
+
+impl DBConnectionHandler {
+    fn new(connection: MySqlConnection) -> Self {
+        DBConnectionHandler { connection }
+    }
+
+    pub async fn seed(self) {
+        let create_result = sqlx::query!("CREATE DATABASE IF NOT EXISTS workforce_db")
+            .execute(&self.connection.pool())
+            .await
+            .unwrap();
+        println!("{:#?}", create_result);
+    }
+}
+
 #[tokio::main]
 async fn main() {
-    let db_url = &std::env::set_var(
-        "DATABASE_URL",
-        "mysql://root:root@localhost:3306/workforce_db",
-    );
-
     let connection: MySqlConnection = DBConnectionBuilder::new()
         .establish(std::env::var("DATABASE_URL").unwrap())
         .await
         .build();
 
-    let pool = connection.pool();
-
-    let seed_db = sqlx::query!("CREATE DATABASE IF NOT EXISTS workforce_db")
-        .execute(&pool)
-        .await
-        .unwrap();
-
-    println!("{:#?}", seed_db);
+    let connection_handler = DBConnectionHandler::new(connection);
+    connection_handler.seed();
 }
