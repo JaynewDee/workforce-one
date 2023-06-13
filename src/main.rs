@@ -1,4 +1,7 @@
-use sqlx::{mysql::MySqlQueryResult, MySql, MySqlPool, Pool};
+extern crate dotenv;
+use dotenv::dotenv;
+
+use sqlx::{MySql, MySqlPool, Pool};
 
 struct MySqlConnection {
     pool: MySqlPool,
@@ -47,17 +50,32 @@ impl DBConnectionHandler {
             .execute(&self.connection.pool())
             .await
             .unwrap();
+
+        let employee_table = sqlx::query!(
+            "CREATE TABLE IF NOT EXISTS employee (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            first_name VARCHAR(100) NOT NULL,
+            last_name VARCHAR(100) NOT NULL,
+            hire_date DATE,
+            FOREIGN KEY (role_id)
+            REFERENCES role(id) 
+        );"
+        );
+
         println!("{:#?}", create_result);
     }
 }
 
 #[tokio::main]
 async fn main() {
+    // Tell the compiler to look for a .env file
+    dotenv().ok();
+
     let connection: MySqlConnection = DBConnectionBuilder::new()
         .establish(std::env::var("DATABASE_URL").unwrap())
         .await
         .build();
 
     let connection_handler = DBConnectionHandler::new(connection);
-    connection_handler.seed();
+    connection_handler.seed().await;
 }
