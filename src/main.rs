@@ -46,23 +46,45 @@ impl DBConnectionHandler {
     }
 
     pub async fn seed(self) {
-        let create_result = sqlx::query!("CREATE DATABASE IF NOT EXISTS workforce_db")
-            .execute(&self.connection.pool())
-            .await
-            .unwrap();
+        let pool = self.connection.pool();
 
-        let employee_table = sqlx::query!(
+        let create_db_seed = sqlx::query!("CREATE DATABASE IF NOT EXISTS workforce_db");
+        let employee_table_seed = sqlx::query!(
             "CREATE TABLE IF NOT EXISTS employee (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            first_name VARCHAR(100) NOT NULL,
-            last_name VARCHAR(100) NOT NULL,
-            hire_date DATE,
-            FOREIGN KEY (role_id)
-            REFERENCES role(id) 
-        );"
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                first_name VARCHAR(100) NOT NULL,
+                last_name VARCHAR(100) NOT NULL,
+                role_id INT NOT NULL,
+                hire_date DATE,
+                FOREIGN KEY (role_id)
+                REFERENCES role(id) 
+            );"
+        );
+        let role_table_seed = sqlx::query!(
+            "CREATE TABLE IF NOT EXISTS role (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                department_id INT NOT NULL,
+                FOREIGN KEY (department_id)
+                REFERENCES department(id)
+            );"
+        );
+        let department_table_seed = sqlx::query!(
+            "CREATE TABLE IF NOT EXISTS department (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(50)
+            );"
         );
 
-        println!("{:#?}", create_result);
+        let employee_table_result = employee_table_seed.execute(&pool).await.unwrap();
+        let create_db_result = create_db_seed.execute(&pool).await.unwrap();
+        let role_table_result = role_table_seed.execute(&pool).await.unwrap();
+        let department_table_result = department_table_seed.execute(&pool).await.unwrap();
+
+        println!("{:#?}", create_db_result);
+        println!("{:#?}", employee_table_result);
+        println!("{:#?}", role_table_result);
+        println!("{:#?}", department_table_result);
     }
 }
 
