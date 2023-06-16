@@ -45,10 +45,11 @@ impl DBConnectionHandler {
         DBConnectionHandler { connection }
     }
 
-    pub async fn seed(self) {
+    pub async fn seed(self) -> Result<(), sqlx::error::Error> {
         let pool = self.connection.pool();
 
         let create_db_seed = sqlx::query!("CREATE DATABASE IF NOT EXISTS workforce_db");
+
         let employee_table_seed = sqlx::query!(
             "CREATE TABLE IF NOT EXISTS employee (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -60,6 +61,7 @@ impl DBConnectionHandler {
                 REFERENCES role(id) 
             );"
         );
+
         let role_table_seed = sqlx::query!(
             "CREATE TABLE IF NOT EXISTS role (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -76,20 +78,21 @@ impl DBConnectionHandler {
             );"
         );
 
-        let employee_table_result = employee_table_seed.execute(&pool).await.unwrap();
-        let create_db_result = create_db_seed.execute(&pool).await.unwrap();
-        let role_table_result = role_table_seed.execute(&pool).await.unwrap();
-        let department_table_result = department_table_seed.execute(&pool).await.unwrap();
+        let employee_table_result = employee_table_seed.execute(&pool).await?;
+        let create_db_result = create_db_seed.execute(&pool).await?;
+        let role_table_result = role_table_seed.execute(&pool).await?;
+        let department_table_result = department_table_seed.execute(&pool).await?;
 
         println!("{:#?}", create_db_result);
         println!("{:#?}", employee_table_result);
         println!("{:#?}", role_table_result);
         println!("{:#?}", department_table_result);
+        Ok(())
     }
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), String> {
     // Tell the compiler to look for a .env file
     dotenv().ok();
 
@@ -99,5 +102,9 @@ async fn main() {
         .build();
 
     let connection_handler = DBConnectionHandler::new(connection);
-    connection_handler.seed().await;
+
+    match connection_handler.seed().await {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
 }
