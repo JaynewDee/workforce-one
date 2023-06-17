@@ -1,5 +1,8 @@
 extern crate dotenvy;
 
+use super::models::Department;
+
+use super::WorkforceQueryHandler;
 use sqlx::{MySql, MySqlPool, Pool};
 
 pub struct MySqlConnection {
@@ -47,17 +50,10 @@ impl DBConnectionHandler {
     pub async fn seed_all(self) -> Result<(), sqlx::error::Error> {
         let pool = self.connection.pool();
 
-        let create_db_seed = sqlx::query!("CREATE DATABASE IF NOT EXISTS workforce_db");
-
-        let employee_table_seed = sqlx::query!(
-            "CREATE TABLE IF NOT EXISTS employee (
+        let department_table_seed = sqlx::query!(
+            "CREATE TABLE IF NOT EXISTS department (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                first_name VARCHAR(100) NOT NULL,
-                last_name VARCHAR(100) NOT NULL,
-                role_id INT NOT NULL,
-                hire_date DATE,
-                FOREIGN KEY (role_id)
-                REFERENCES role(id) 
+                name VARCHAR(50) NOT NULL
             );"
         );
 
@@ -71,19 +67,30 @@ impl DBConnectionHandler {
             );"
         );
 
-        let department_table_seed = sqlx::query!(
-            "CREATE TABLE IF NOT EXISTS department (
+        let employee_table_seed = sqlx::query!(
+            "CREATE TABLE IF NOT EXISTS employee (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(50) NOT NULL
+                first_name VARCHAR(100) NOT NULL,
+                last_name VARCHAR(100) NOT NULL,
+                role_id INT NOT NULL,
+                hire_date DATE,
+                FOREIGN KEY (role_id)
+                REFERENCES role(id)
             );"
         );
 
-        let employee_table_result = employee_table_seed.execute(&pool).await?;
-        let create_db_result = create_db_seed.execute(&pool).await?;
-        let role_table_result = role_table_seed.execute(&pool).await?;
         let department_table_result = department_table_seed.execute(&pool).await?;
+        let role_table_result = role_table_seed.execute(&pool).await?;
+        let employee_table_result = employee_table_seed.execute(&pool).await?;
 
-        println!("{:#?}", create_db_result);
+        let new_department = Department {
+            name: String::from("sales"),
+        };
+
+        WorkforceQueryHandler::add_department(&pool, new_department).await;
+        WorkforceQueryHandler::view_departments(&pool).await;
+        WorkforceQueryHandler::department_by_name(&pool, String::from("sales")).await;
+
         println!("{:#?}", employee_table_result);
         println!("{:#?}", role_table_result);
         println!("{:#?}", department_table_result);

@@ -2,7 +2,6 @@ extern crate dotenvy;
 use dotenvy::dotenv;
 
 mod db;
-use db::WorkforceQueryHandler;
 use db::{DBConnectionBuilder, DBConnectionHandler, MySqlConnection};
 
 #[tokio::main]
@@ -22,13 +21,12 @@ async fn main() -> Result<(), String> {
     };
 
     let connection: MySqlConnection = DBConnectionBuilder::new().establish(db_url).await.build();
-
     let connection_handler = DBConnectionHandler::new(connection);
 
     let is_seeded = match connection_handler.seed_all().await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     };
-    WorkforceQueryHandler::add_department(conn_pool, new_department);
+
     is_seeded
 }
