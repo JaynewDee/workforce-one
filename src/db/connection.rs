@@ -1,4 +1,4 @@
-extern crate dotenv;
+extern crate dotenvy;
 
 use sqlx::{MySql, MySqlPool, Pool};
 
@@ -74,7 +74,7 @@ impl DBConnectionHandler {
         let department_table_seed = sqlx::query!(
             "CREATE TABLE IF NOT EXISTS department (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(50)
+                name VARCHAR(50) NOT NULL
             );"
         );
 
@@ -91,5 +91,3 @@ impl DBConnectionHandler {
         Ok(())
     }
 }
-
-

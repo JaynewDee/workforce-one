@@ -1,3 +1,6 @@
+extern crate sqlx;
 mod connection;
-pub use connection::{MySqlConnection, DBConnectionBuilder, DBConnectionHandler};
+mod query;
 
+pub use connection::{DBConnectionBuilder, DBConnectionHandler, MySqlConnection};
+pub use query::WorkforceQueryHandler;

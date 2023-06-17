@@ -1,9 +1,9 @@
-extern crate dotenv;
-use dotenv::dotenv;
+extern crate dotenvy;
+use dotenvy::dotenv;
 
 mod db;
-
-use db::{MySqlConnection, DBConnectionHandler, DBConnectionBuilder };
+use db::WorkforceQueryHandler;
+use db::{DBConnectionBuilder, DBConnectionHandler, MySqlConnection};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
@@ -13,7 +13,10 @@ async fn main() -> Result<(), String> {
     let db_url = match std::env::var("DATABASE_URL") {
         Ok(url) => url,
         Err(_) => {
-            println!("No DATABASE_URL found within environment.  Using default dev credentials.");
+            println!(
+                "No DATABASE_URL found within environment.\n
+                    Using default dev credentials."
+            );
             "mysql://root:root@localhost/workforce_db".to_string()
         }
     };
@@ -26,6 +29,6 @@ async fn main() -> Result<(), String> {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     };
-
+    WorkforceQueryHandler::add_department(conn_pool, new_department);
     is_seeded
 }
