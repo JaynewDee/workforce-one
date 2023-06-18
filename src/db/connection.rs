@@ -2,9 +2,6 @@ extern crate dotenvy;
 
 use sqlx::{MySql, MySqlPool, Pool};
 
-use super::models::Department;
-use super::WorkforceQueryHandler;
-
 pub struct MySqlConnection {
     pool: MySqlPool,
 }
