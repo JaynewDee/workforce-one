@@ -5,5 +5,5 @@ mod models;
 mod query;
 
 pub use connection::{DBConnectionBuilder, DBConnectionHandler, MySqlConnection};
-pub use models::Department;
-pub use query::WorkforceQueryHandler;
+pub use models::{Department, Employee, Role};
+pub use query::{seed_all, WorkforceQueryHandler};

@@ -1,9 +1,9 @@
+extern crate chrono;
 extern crate dotenvy;
 use dotenvy::dotenv;
 
 mod db;
-use db::{DBConnectionBuilder, DBConnectionHandler, MySqlConnection};
-
+use db::{seed_all, DBConnectionBuilder, MySqlConnection};
 #[tokio::main]
 async fn main() -> Result<(), String> {
     // Tell the compiler to look for a .env file
@@ -20,10 +20,14 @@ async fn main() -> Result<(), String> {
         }
     };
 
-    let connection: MySqlConnection = DBConnectionBuilder::new().establish(db_url).await.build();
-    let connection_handler = DBConnectionHandler::new(connection);
+    let connection: MySqlConnection = DBConnectionBuilder::default()
+        .establish(db_url)
+        .await
+        .build();
 
-    let is_seeded = match connection_handler.seed_all().await {
+    let pool = connection.pool();
+
+    let is_seeded = match seed_all(&pool).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     };
