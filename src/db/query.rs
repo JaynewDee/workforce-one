@@ -14,9 +14,9 @@ impl<'a> WorkforceQueryHandler<'a> {
         Self { conn_pool }
     }
 
-    pub async fn view_departments(&self) -> Result<MySqlRow, sqlx::Error> {
+    pub async fn view_departments(&self) -> Result<Vec<MySqlRow>, sqlx::Error> {
         let departments_result = sqlx::query("SELECT * FROM department;")
-            .fetch_one(self.conn_pool)
+            .fetch_all(self.conn_pool)
             .await;
 
         departments_result
@@ -71,12 +71,12 @@ impl<'a> WorkforceQueryHandler<'a> {
         println!("{:#?}", result);
     }
 
-    pub async fn view_employees(&self) {
+    pub async fn view_employees(&self) -> Result<Vec<MySqlRow>, sqlx::Error> {
         let result = sqlx::query("SELECT * FROM `employee`;")
             .fetch_all(self.conn_pool)
             .await;
 
-        println!("{:#?}", result)
+        result
     }
 
     pub async fn employee_by_id(&self, employee_id: u32) {
@@ -110,20 +110,29 @@ pub async fn seed_all(conn_pool: &MySqlPool) -> Result<(), sqlx::error::Error> {
 
     let utc: DateTime<Utc> = Utc::now();
 
-    let _ = sqlx::query!("DROP TABLE department;")
+    let _ = sqlx::query!("DROP TABLE employee;")
         .execute(conn_pool)
-        .await;
+        .await
+        .unwrap();
 
-    let department_table_seed = sqlx::query!(
+    let _ = sqlx::query("DROP TABLE role;")
+        .execute(conn_pool)
+        .await
+        .unwrap();
+
+    let _ = sqlx::query("DROP TABLE department;")
+        .execute(conn_pool)
+        .await
+        .unwrap();
+
+    let department_table_seed = sqlx::query(
         "CREATE TABLE IF NOT EXISTS department (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(50) NOT NULL
-            );"
+            );",
     );
 
-    let _ = sqlx::query!("DROP TABLE role;").execute(conn_pool).await;
-
-    let role_table_seed = sqlx::query!(
+    let role_table_seed = sqlx::query(
         "CREATE TABLE IF NOT EXISTS role (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(100) NOT NULL,
@@ -131,14 +140,10 @@ pub async fn seed_all(conn_pool: &MySqlPool) -> Result<(), sqlx::error::Error> {
                 department_id INT NOT NULL,
                 FOREIGN KEY (department_id)
                 REFERENCES department(id)
-            );"
+            );",
     );
 
-    let _ = sqlx::query!("DROP TABLE employee;")
-        .execute(conn_pool)
-        .await;
-
-    let employee_table_seed = sqlx::query!(
+    let employee_table_seed = sqlx::query(
         "CREATE TABLE IF NOT EXISTS employee (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 first_name VARCHAR(100) NOT NULL,
@@ -150,13 +155,31 @@ pub async fn seed_all(conn_pool: &MySqlPool) -> Result<(), sqlx::error::Error> {
                 REFERENCES role(id),
                 FOREIGN KEY (manager_id)
                 REFERENCES employee(id)
-            );"
+            );",
     );
 
     let employee_seeds: Vec<Employee> = vec![
-        Employee::new(String::from("Joshua"), String::from("Diehl"), 1, 1, utc),
-        Employee::new(String::from("Haylee"), String::from("Diehl"), 1, 1, utc),
-        Employee::new(String::from("Jack"), String::from("Ryan"), 1, 1, utc),
+        Employee::new(
+            String::from("Joshua"),
+            String::from("Diehl"),
+            1,
+            1,
+            utc.to_string(),
+        ),
+        Employee::new(
+            String::from("Haylee"),
+            String::from("Diehl"),
+            1,
+            1,
+            utc.to_string(),
+        ),
+        Employee::new(
+            String::from("Jack"),
+            String::from("Ryan"),
+            1,
+            1,
+            utc.to_string(),
+        ),
     ];
 
     let role_seeds: Vec<Role> = vec![Role::new(String::from("Agent"), 93_000.00f32, 1)];
@@ -173,6 +196,7 @@ pub async fn seed_all(conn_pool: &MySqlPool) -> Result<(), sqlx::error::Error> {
     for role in role_seeds.into_iter() {
         handler.add_role(role).await?;
     }
+
     for employee in employee_seeds.into_iter() {
         handler.add_employee(employee).await?;
     }

@@ -31,7 +31,7 @@ pub struct Employee {
     pub last_name: String,
     pub role_id: i32,
     pub manager_id: i32,
-    pub hire_date: DateTime<Utc>,
+    pub hire_date: String,
 }
 
 impl Employee {
@@ -40,7 +40,7 @@ impl Employee {
         last_name: String,
         role_id: i32,
         manager_id: i32,
-        hire_date: DateTime<Utc>,
+        hire_date: String,
     ) -> Self {
         Self {
             first_name,
