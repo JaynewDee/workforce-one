@@ -6,8 +6,8 @@ use dotenvy::dotenv;
 mod cli;
 mod db;
 use db::{
-    seed_all, DBConnectionBuilder, Department, Employee, MySqlConnection, Role,
-    WorkforceQueryHandler,
+    DBConnectionBuilder, Department, Employee, MySqlConnection, Role, WorkforceQueryHandler,
+    WorkforceSeeder,
 };
 use sqlx::Row;
 
@@ -81,6 +81,7 @@ async fn main() -> Result<(), String> {
                 "No DATABASE_URL found within environment.\n
                     Using default dev credentials."
             );
+
             "mysql://root:root@localhost/workforce_db".to_string()
         }
     };
@@ -92,9 +93,7 @@ async fn main() -> Result<(), String> {
 
     let pool = connection.pool();
 
-    let query_handler = WorkforceQueryHandler::new(&pool);
-
-    let is_seeded = match seed_all(&pool).await {
+    let is_seeded = match WorkforceSeeder::new(&pool).seed_all().await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     };

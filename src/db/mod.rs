@@ -6,4 +6,4 @@ mod query;
 
 pub use connection::{DBConnectionBuilder, DBConnectionHandler, MySqlConnection};
 pub use models::{Department, Employee, Role};
-pub use query::{seed_all, WorkforceQueryHandler};
+pub use query::{WorkforceQueryHandler, WorkforceSeeder};

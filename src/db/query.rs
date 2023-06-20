@@ -103,37 +103,65 @@ impl<'a> WorkforceQueryHandler<'a> {
 
         result
     }
+
+    pub async fn delete_employee_by_id(&self, id: i32) -> Result<MySqlQueryResult, sqlx::Error> {
+        sqlx::query("DELETE FROM employee WHERE id = ?;")
+            .bind(&id)
+            .execute(self.conn_pool)
+            .await
+    }
+
+    pub async fn update_employee_role(
+        &self,
+        id: i32,
+        new_role: String,
+    ) -> Result<MySqlQueryResult, sqlx::Error> {
+        sqlx::query("UPDATE employee SET role = ? WHERE id = ?;")
+            .bind(&new_role)
+            .bind(&id)
+            .execute(self.conn_pool)
+            .await
+    }
 }
 
-pub async fn seed_all(conn_pool: &MySqlPool) -> Result<(), sqlx::error::Error> {
-    let handler = WorkforceQueryHandler::new(conn_pool);
+pub struct WorkforceSeeder<'a> {
+    pool: &'a MySqlPool,
+}
 
-    let utc: DateTime<Utc> = Utc::now();
+impl<'a> WorkforceSeeder<'a> {
+    pub fn new(pool: &'a MySqlPool) -> Self {
+        Self { pool }
+    }
 
-    let _ = sqlx::query!("DROP TABLE employee;")
-        .execute(conn_pool)
-        .await
-        .unwrap();
+    pub async fn drop_tables(&self) -> Result<(), sqlx::error::Error> {
+        let _ = sqlx::query!("DROP TABLE employee;")
+            .execute(self.pool)
+            .await
+            .unwrap();
 
-    let _ = sqlx::query("DROP TABLE role;")
-        .execute(conn_pool)
-        .await
-        .unwrap();
+        let _ = sqlx::query("DROP TABLE role;")
+            .execute(self.pool)
+            .await
+            .unwrap();
 
-    let _ = sqlx::query("DROP TABLE department;")
-        .execute(conn_pool)
-        .await
-        .unwrap();
+        let _ = sqlx::query("DROP TABLE department;")
+            .execute(self.pool)
+            .await
+            .unwrap();
 
-    let department_table_seed = sqlx::query(
-        "CREATE TABLE IF NOT EXISTS department (
+        Ok(())
+    }
+
+    pub async fn seed_tables(&self) -> Result<(), sqlx::error::Error> {
+        let department_table_seed = sqlx::query(
+            "CREATE TABLE IF NOT EXISTS department (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(50) NOT NULL
             );",
-    );
+        );
 
-    let role_table_seed = sqlx::query(
-        "CREATE TABLE IF NOT EXISTS role (
+        let role_table_seed = sqlx::query(
+            "CREATE TABLE IF NOT EXISTS role (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(100) NOT NULL,
                 salary DECIMAL,
@@ -141,10 +169,10 @@ pub async fn seed_all(conn_pool: &MySqlPool) -> Result<(), sqlx::error::Error> {
                 FOREIGN KEY (department_id)
                 REFERENCES department(id)
             );",
-    );
+        );
 
-    let employee_table_seed = sqlx::query(
-        "CREATE TABLE IF NOT EXISTS employee (
+        let employee_table_seed = sqlx::query(
+            "CREATE TABLE IF NOT EXISTS employee (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 first_name VARCHAR(100) NOT NULL,
                 last_name VARCHAR(100) NOT NULL,
@@ -156,54 +184,89 @@ pub async fn seed_all(conn_pool: &MySqlPool) -> Result<(), sqlx::error::Error> {
                 FOREIGN KEY (manager_id)
                 REFERENCES employee(id)
             );",
-    );
+        );
 
-    let employee_seeds: Vec<Employee> = vec![
-        Employee::new(
-            String::from("Joshua"),
-            String::from("Diehl"),
-            1,
-            1,
-            utc.to_string(),
-        ),
-        Employee::new(
-            String::from("Haylee"),
-            String::from("Diehl"),
-            1,
-            1,
-            utc.to_string(),
-        ),
-        Employee::new(
-            String::from("Jack"),
-            String::from("Ryan"),
-            1,
-            1,
-            utc.to_string(),
-        ),
-    ];
+        let department_table_result = department_table_seed.execute(self.pool).await?;
+        let role_table_result = role_table_seed.execute(self.pool).await?;
+        let employee_table_result = employee_table_seed.execute(self.pool).await?;
 
-    let role_seeds: Vec<Role> = vec![Role::new(String::from("Agent"), 93_000.00f32, 1)];
+        println!("{:#?}", department_table_result);
+        println!("{:#?}", role_table_result);
+        println!("{:#?}", employee_table_result);
 
-    let department_table_result = department_table_seed.execute(conn_pool).await?;
-    let role_table_result = role_table_seed.execute(conn_pool).await?;
-    let employee_table_result = employee_table_seed.execute(conn_pool).await?;
-
-    let new_department = Department::new(0, String::from("sales"));
-
-    handler.add_department(new_department).await?;
-    handler.view_departments().await?;
-
-    for role in role_seeds.into_iter() {
-        handler.add_role(role).await?;
+        Ok(())
     }
 
-    for employee in employee_seeds.into_iter() {
-        handler.add_employee(employee).await?;
+    pub async fn seed_employee_data(
+        &self,
+        query_handler: &WorkforceQueryHandler<'a>,
+    ) -> Result<(), sqlx::Error> {
+        let utc: DateTime<Utc> = Utc::now();
+
+        let employee_seeds: Vec<Employee> = vec![
+            Employee::new(
+                String::from("Joshua"),
+                String::from("Diehl"),
+                1,
+                1,
+                utc.to_string(),
+            ),
+            Employee::new(
+                String::from("Haylee"),
+                String::from("Diehl"),
+                1,
+                1,
+                utc.to_string(),
+            ),
+            Employee::new(
+                String::from("Jack"),
+                String::from("Ryan"),
+                1,
+                1,
+                utc.to_string(),
+            ),
+        ];
+
+        for employee in employee_seeds.into_iter() {
+            query_handler.add_employee(employee).await?;
+        }
+
+        Ok(())
     }
 
-    println!("{:#?}", department_table_result);
-    println!("{:#?}", role_table_result);
-    println!("{:#?}", employee_table_result);
+    pub async fn seed_role_data(
+        &self,
+        query_handler: &WorkforceQueryHandler<'a>,
+    ) -> Result<(), sqlx::error::Error> {
+        let role_seeds: Vec<Role> = vec![Role::new(String::from("Agent"), 93_000.00f32, 1)];
 
-    Ok(())
+        for role in role_seeds.into_iter() {
+            query_handler.add_role(role).await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn seed_dept_data(
+        &self,
+        query_handler: &WorkforceQueryHandler<'a>,
+    ) -> Result<(), sqlx::Error> {
+        let new_department = Department::new(0, String::from("sales"));
+
+        query_handler.add_department(new_department).await?;
+
+        Ok(())
+    }
+
+    pub async fn seed_all(&self) -> Result<(), sqlx::error::Error> {
+        let handler = WorkforceQueryHandler::new(self.pool);
+
+        self.drop_tables().await?;
+        self.seed_tables().await?;
+        self.seed_dept_data(&handler).await?;
+        self.seed_role_data(&handler).await?;
+        self.seed_employee_data(&handler).await?;
+
+        Ok(())
+    }
 }
