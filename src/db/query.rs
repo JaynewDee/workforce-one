@@ -9,23 +9,21 @@ pub struct WorkforceQueryHandler<'a> {
     conn_pool: &'a MySqlPool,
 }
 
+type QueryResult = Result<MySqlQueryResult, sqlx::Error>;
+type RowsResult = Result<Vec<MySqlRow>, sqlx::Error>;
+
 impl<'a> WorkforceQueryHandler<'a> {
     pub fn new(conn_pool: &'a MySqlPool) -> Self {
         Self { conn_pool }
     }
 
-    pub async fn view_departments(&self) -> Result<Vec<MySqlRow>, sqlx::Error> {
-        let departments_result = sqlx::query("SELECT * FROM department;")
+    pub async fn view_departments(&self) -> RowsResult {
+        sqlx::query("SELECT * FROM department;")
             .fetch_all(self.conn_pool)
-            .await;
-
-        departments_result
+            .await
     }
 
-    pub async fn add_department(
-        &self,
-        new_department: Department,
-    ) -> Result<sqlx::mysql::MySqlQueryResult, sqlx::Error> {
+    pub async fn add_department(&self, new_department: Department) -> QueryResult {
         sqlx::query("INSERT INTO `department` (name) VALUES (?);")
             .bind(&new_department.name)
             .execute(self.conn_pool)
@@ -44,22 +42,19 @@ impl<'a> WorkforceQueryHandler<'a> {
         Ok(Department::new(result.get("id"), result.get("name")))
     }
 
-    pub async fn view_roles(&self) -> Result<Vec<MySqlRow>, sqlx::Error> {
+    pub async fn view_roles(&self) -> RowsResult {
         sqlx::query("SELECT * FROM role;")
             .fetch_all(self.conn_pool)
             .await
     }
 
-    pub async fn add_role(&self, new_role: Role) -> Result<MySqlQueryResult, sqlx::Error> {
-        let insert_role_result =
-            sqlx::query("INSERT INTO `role` (title, salary, department_id) VALUES (?, ?, ?);")
-                .bind(&new_role.title)
-                .bind(&new_role.salary)
-                .bind(&new_role.department_id)
-                .execute(self.conn_pool)
-                .await;
-
-        insert_role_result
+    pub async fn add_role(&self, new_role: Role) -> QueryResult {
+        sqlx::query("INSERT INTO `role` (title, salary, department_id) VALUES (?, ?, ?);")
+            .bind(&new_role.title)
+            .bind(&new_role.salary)
+            .bind(&new_role.department_id)
+            .execute(self.conn_pool)
+            .await
     }
 
     pub async fn role_by_title(&self, role_title: String) {
@@ -71,12 +66,10 @@ impl<'a> WorkforceQueryHandler<'a> {
         println!("{:#?}", result);
     }
 
-    pub async fn view_employees(&self) -> Result<Vec<MySqlRow>, sqlx::Error> {
-        let result = sqlx::query("SELECT * FROM `employee`;")
+    pub async fn view_employees(&self) -> RowsResult {
+        sqlx::query("SELECT * FROM `employee`;")
             .fetch_all(self.conn_pool)
-            .await;
-
-        result
+            .await
     }
 
     pub async fn employee_by_id(&self, employee_id: u32) {
@@ -89,10 +82,7 @@ impl<'a> WorkforceQueryHandler<'a> {
         println!("{:#?}", result);
     }
 
-    pub async fn add_employee(
-        &self,
-        new_employee: Employee,
-    ) -> Result<MySqlQueryResult, sqlx::Error> {
+    pub async fn add_employee(&self, new_employee: Employee) -> QueryResult {
         let result = sqlx::query("INSERT INTO `employee` (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?);")
             .bind(&new_employee.first_name)
             .bind(&new_employee.last_name)
@@ -104,18 +94,14 @@ impl<'a> WorkforceQueryHandler<'a> {
         result
     }
 
-    pub async fn delete_employee_by_id(&self, id: i32) -> Result<MySqlQueryResult, sqlx::Error> {
+    pub async fn delete_employee_by_id(&self, id: i32) -> QueryResult {
         sqlx::query("DELETE FROM employee WHERE id = ?;")
             .bind(&id)
             .execute(self.conn_pool)
             .await
     }
 
-    pub async fn update_employee_role(
-        &self,
-        id: i32,
-        new_role: String,
-    ) -> Result<MySqlQueryResult, sqlx::Error> {
+    pub async fn update_employee_role(&self, id: i32, new_role: String) -> QueryResult {
         sqlx::query("UPDATE employee SET role = ? WHERE id = ?;")
             .bind(&new_role)
             .bind(&id)
@@ -133,7 +119,7 @@ impl<'a> WorkforceSeeder<'a> {
         Self { pool }
     }
 
-    pub async fn drop_tables(&self) -> Result<(), sqlx::error::Error> {
+    async fn drop_tables(&self) -> Result<(), sqlx::error::Error> {
         let _ = sqlx::query!("DROP TABLE employee;")
             .execute(self.pool)
             .await
@@ -152,7 +138,7 @@ impl<'a> WorkforceSeeder<'a> {
         Ok(())
     }
 
-    pub async fn seed_tables(&self) -> Result<(), sqlx::error::Error> {
+    async fn seed_tables(&self) -> Result<(), sqlx::error::Error> {
         let department_table_seed = sqlx::query(
             "CREATE TABLE IF NOT EXISTS department (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -164,8 +150,8 @@ impl<'a> WorkforceSeeder<'a> {
             "CREATE TABLE IF NOT EXISTS role (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(100) NOT NULL,
-                salary DECIMAL,
-                department_id INT NOT NULL,
+                salary FLOAT,
+                department_id INT,
                 FOREIGN KEY (department_id)
                 REFERENCES department(id)
             );",
@@ -178,7 +164,6 @@ impl<'a> WorkforceSeeder<'a> {
                 last_name VARCHAR(100) NOT NULL,
                 role_id INT NOT NULL,
                 manager_id INT NOT NULL,
-                hire_date DATE,
                 FOREIGN KEY (role_id)
                 REFERENCES role(id),
                 FOREIGN KEY (manager_id)
@@ -186,45 +171,21 @@ impl<'a> WorkforceSeeder<'a> {
             );",
         );
 
-        let department_table_result = department_table_seed.execute(self.pool).await?;
-        let role_table_result = role_table_seed.execute(self.pool).await?;
-        let employee_table_result = employee_table_seed.execute(self.pool).await?;
-
-        println!("{:#?}", department_table_result);
-        println!("{:#?}", role_table_result);
-        println!("{:#?}", employee_table_result);
+        department_table_seed.execute(self.pool).await?;
+        role_table_seed.execute(self.pool).await?;
+        employee_table_seed.execute(self.pool).await?;
 
         Ok(())
     }
 
-    pub async fn seed_employee_data(
+    async fn seed_employee_data(
         &self,
         query_handler: &WorkforceQueryHandler<'a>,
     ) -> Result<(), sqlx::Error> {
-        let utc: DateTime<Utc> = Utc::now();
-
         let employee_seeds: Vec<Employee> = vec![
-            Employee::new(
-                String::from("Joshua"),
-                String::from("Diehl"),
-                1,
-                1,
-                utc.to_string(),
-            ),
-            Employee::new(
-                String::from("Haylee"),
-                String::from("Diehl"),
-                1,
-                1,
-                utc.to_string(),
-            ),
-            Employee::new(
-                String::from("Jack"),
-                String::from("Ryan"),
-                1,
-                1,
-                utc.to_string(),
-            ),
+            Employee::new(String::from("Joshua"), String::from("Diehl"), 1, 1),
+            Employee::new(String::from("Haylee"), String::from("Diehl"), 1, 1),
+            Employee::new(String::from("Jack"), String::from("Ryan"), 1, 1),
         ];
 
         for employee in employee_seeds.into_iter() {
@@ -234,7 +195,7 @@ impl<'a> WorkforceSeeder<'a> {
         Ok(())
     }
 
-    pub async fn seed_role_data(
+    async fn seed_role_data(
         &self,
         query_handler: &WorkforceQueryHandler<'a>,
     ) -> Result<(), sqlx::error::Error> {
@@ -247,7 +208,7 @@ impl<'a> WorkforceSeeder<'a> {
         Ok(())
     }
 
-    pub async fn seed_dept_data(
+    async fn seed_dept_data(
         &self,
         query_handler: &WorkforceQueryHandler<'a>,
     ) -> Result<(), sqlx::Error> {
@@ -261,7 +222,7 @@ impl<'a> WorkforceSeeder<'a> {
     pub async fn seed_all(&self) -> Result<(), sqlx::error::Error> {
         let handler = WorkforceQueryHandler::new(self.pool);
 
-        self.drop_tables().await?;
+        // self.drop_tables().await?;
         self.seed_tables().await?;
         self.seed_dept_data(&handler).await?;
         self.seed_role_data(&handler).await?;

@@ -11,6 +11,7 @@ use db::{
 };
 use sqlx::Row;
 
+#[derive(Debug)]
 enum ViewResult {
     Employees(Vec<Employee>),
     Departments(Vec<Department>),
@@ -29,8 +30,7 @@ async fn handle_view(table_arg: &str, query_handler: WorkforceQueryHandler<'_>) 
                     let last_name = row.get("last_name");
                     let role_id = row.get("role_id");
                     let manager_id = row.get("manager_id");
-                    let hire_date = row.get("hire_date");
-                    Employee::new(first_name, last_name, role_id, manager_id, hire_date)
+                    Employee::new(first_name, last_name, role_id, manager_id)
                 })
                 .collect();
             ViewResult::Employees(collection)
@@ -72,8 +72,6 @@ async fn main() -> Result<(), String> {
     // Tell the compiler to look for a .env file
     dotenv().ok();
 
-    cli::main().ok();
-
     let db_url = match std::env::var("DATABASE_URL") {
         Ok(url) => url,
         Err(_) => {
@@ -93,10 +91,19 @@ async fn main() -> Result<(), String> {
 
     let pool = connection.pool();
 
-    let is_seeded = match WorkforceSeeder::new(&pool).seed_all().await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.to_string()),
-    };
+    // let is_seeded = match WorkforceSeeder::new(&pool).seed_all().await {
+    //     Ok(_) => Ok(()),
+    //     Err(e) => Err(e.to_string()),
+    // };
 
-    is_seeded
+    let query_handler = WorkforceQueryHandler::new(&pool);
+
+    let table_arg = cli::main().unwrap();
+
+    let view = handle_view(&table_arg, query_handler).await;
+
+    println!("{:#?}", view);
+
+    // is_seeded
+    Ok(())
 }

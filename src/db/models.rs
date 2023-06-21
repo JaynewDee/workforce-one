@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+#[derive(Debug)]
 pub struct Department {
     pub id: i32,
     pub name: String,
@@ -10,6 +10,7 @@ impl Department {
     }
 }
 
+#[derive(Debug)]
 pub struct Role {
     pub title: String,
     pub salary: f32,
@@ -26,28 +27,21 @@ impl Role {
     }
 }
 
+#[derive(Debug)]
 pub struct Employee {
     pub first_name: String,
     pub last_name: String,
     pub role_id: i32,
     pub manager_id: i32,
-    pub hire_date: String,
 }
 
 impl Employee {
-    pub fn new(
-        first_name: String,
-        last_name: String,
-        role_id: i32,
-        manager_id: i32,
-        hire_date: String,
-    ) -> Self {
+    pub fn new(first_name: String, last_name: String, role_id: i32, manager_id: i32) -> Self {
         Self {
             first_name,
             last_name,
             role_id,
             manager_id,
-            hire_date,
         }
     }
 }

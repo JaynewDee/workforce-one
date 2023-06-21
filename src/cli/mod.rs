@@ -2,8 +2,6 @@ mod io;
 
 use io::parse_args;
 
-pub fn main() -> Result<(), String> {
-    parse_args();
-
-    Ok(())
+pub fn main() -> Result<String, String> {
+    Ok(parse_args())
 }
