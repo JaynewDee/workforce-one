@@ -1,14 +1,11 @@
 extern crate chrono;
 extern crate dotenvy;
 
-use dotenvy::dotenv;
-
 mod cli;
 mod db;
-use db::{
-    DBConnectionBuilder, Department, Employee, MySqlConnection, Role, WorkforceQueryHandler,
-    WorkforceSeeder,
-};
+
+use db::{DBConnectionBuilder, Department, Employee, MySqlConnection, Role, WorkforceQueryHandler};
+use dotenvy::dotenv;
 use sqlx::Row;
 
 #[derive(Debug)]
@@ -19,8 +16,8 @@ enum ViewResult {
     Invalid(String),
 }
 
-async fn handle_view(table_arg: &str, query_handler: WorkforceQueryHandler<'_>) -> ViewResult {
-    match table_arg {
+async fn handle_view(table_arg: &str, query_handler: WorkforceQueryHandler<'_>) {
+    let result = match table_arg {
         "employees" => {
             let employees = query_handler.view_employees().await.unwrap();
             let collection: Vec<Employee> = employees
@@ -64,7 +61,14 @@ async fn handle_view(table_arg: &str, query_handler: WorkforceQueryHandler<'_>) 
         _ => ViewResult::Invalid(String::from(
             "Invalid Argument passed to `view(v)` flag ... ",
         )),
-    }
+    };
+
+    match result {
+        ViewResult::Departments(v) => v.into_iter().for_each(|dept| println!("{:#?}", dept)),
+        ViewResult::Employees(v) => v.into_iter().for_each(|emp| println!("{:#?}", emp)),
+        ViewResult::Roles(v) => v.into_iter().for_each(|role| println!("{:#?}", role)),
+        ViewResult::Invalid(v) => println!("{:#?}", v),
+    };
 }
 
 #[tokio::main]
@@ -91,19 +95,15 @@ async fn main() -> Result<(), String> {
 
     let pool = connection.pool();
 
-    // let is_seeded = match WorkforceSeeder::new(&pool).seed_all().await {
-    //     Ok(_) => Ok(()),
-    //     Err(e) => Err(e.to_string()),
-    // };
+    //  WorkforceSeeder::new(&pool).seed_all().await;
 
     let query_handler = WorkforceQueryHandler::new(&pool);
 
-    let table_arg = cli::main().unwrap();
+    let arg_options = cli::main().unwrap();
 
-    let view = handle_view(&table_arg, query_handler).await;
+    if let Some(view_arg) = arg_options.view() {
+        handle_view(&view_arg, query_handler).await;
+    }
 
-    println!("{:#?}", view);
-
-    // is_seeded
     Ok(())
 }

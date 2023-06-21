@@ -9,21 +9,59 @@
    - update an employee role
 */
 
-pub fn parse_args() -> String {
-    let args: Vec<String> = std::env::args().collect();
-    // `v` flag for `view` option
-    if args.iter().any(|arg| arg == "v") {
-        println!("Contains `value` flag");
+use crate::db::{Department, Employee, Role};
 
-        let arg_index = args.iter().position(|item| item == "v").unwrap() + 1;
-        if arg_index < args.len() {
-            println!("View argument ::: {:#?}", args[arg_index]);
+enum TableColumn {
+    Department(Department),
+    Employee(Employee),
+    Role(Role),
+}
+
+pub struct ArgOptions {
+    view: Option<String>,
+    add: Option<TableColumn>,
+}
+
+impl ArgOptions {
+    pub fn new() -> ArgOptions {
+        let mut view = None;
+        let mut add = None;
+
+        let args = std::env::args().collect::<Vec<String>>();
+
+        // Check for view argument
+        if args.iter().any(|arg| arg == "v") {
+            // Get position of "v" flag in args vec
+            let arg_index = args.iter().position(|item| item == "v").unwrap() + 1;
+
+            // Check for argument following flag
+            if arg_index < args.len() {
+                // if index is len or greater, it doesn't exist in args vec
+                view = Some(args[arg_index].clone());
+            } else {
+                println!("No argument was passed to `view` flag ... ")
+            }
         } else {
-            println!("No argument was passed to `view` flag ... ")
+            println!("Unknown argument(s)")
         }
-    } else {
-        println!("Unknown argument(s)")
+
+        // Check for add argument
+        if args.iter().any(|arg| arg == "add") {
+            let table = args.iter().position(|item| item == "add").unwrap() + 1;
+            if table < args.len() {
+                match args[table].as_str() {
+                    "employee" => {}
+                    "department" => {}
+                    "role" => {}
+                    _ => {}
+                }
+            }
+        }
+
+        Self { view, add }
     }
 
-    args[2].clone()
+    pub fn view(&self) -> Option<String> {
+        self.view.clone()
+    }
 }

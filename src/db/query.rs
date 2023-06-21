@@ -1,6 +1,5 @@
 use super::models::{Department, Role};
 use super::Employee;
-use chrono::prelude::*;
 use sqlx::mysql::{MySqlQueryResult, MySqlRow};
 use sqlx::MySqlPool;
 use sqlx::Row;
