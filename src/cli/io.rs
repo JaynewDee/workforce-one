@@ -10,16 +10,13 @@
 */
 
 use crate::db::{Department, Employee, Role};
+use std::io::prelude::*;
+use std::io::stdout;
 
-enum TableColumn {
-    Department(Department),
-    Employee(Employee),
-    Role(Role),
-}
-
+type AddParams = Vec<String>;
 pub struct ArgOptions {
     view: Option<String>,
-    add: Option<TableColumn>,
+    add: Option<AddParams>,
 }
 
 impl ArgOptions {
@@ -42,20 +39,13 @@ impl ArgOptions {
                 println!("No argument was passed to `view` flag ... ")
             }
         } else {
-            println!("Unknown argument(s)")
+            println!("Unknown argument(s)");
         }
 
         // Check for add argument
+        // Check for values
         if args.iter().any(|arg| arg == "add") {
             let table = args.iter().position(|item| item == "add").unwrap() + 1;
-            if table < args.len() {
-                match args[table].as_str() {
-                    "employee" => {}
-                    "department" => {}
-                    "role" => {}
-                    _ => {}
-                }
-            }
         }
 
         Self { view, add }
@@ -63,5 +53,14 @@ impl ArgOptions {
 
     pub fn view(&self) -> Option<String> {
         self.view.clone()
+    }
+
+    pub fn add(&self) -> Option<Vec<String>> {
+        self.add.clone()
+    }
+    fn flush_out() {
+        stdout()
+            .flush()
+            .expect("Should have flushed stdout stream ... ")
     }
 }

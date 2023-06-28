@@ -8,6 +8,44 @@ use db::{DBConnectionBuilder, Department, Employee, MySqlConnection, Role, Workf
 use dotenvy::dotenv;
 use sqlx::Row;
 
+#[tokio::main]
+async fn main() -> Result<(), String> {
+    // Tell the compiler to look for a .env file
+    dotenv().ok();
+
+    let db_url = match std::env::var("DATABASE_URL") {
+        Ok(url) => url,
+        Err(_) => {
+            println!(
+                "No DATABASE_URL found within environment.\n
+                    Using default dev credentials."
+            );
+            "mysql://root:root@localhost/workforce_db".to_string()
+        }
+    };
+
+    let connection: MySqlConnection = DBConnectionBuilder::default()
+        .establish(db_url)
+        .await
+        .build();
+
+    let pool = connection.pool();
+
+    //  WorkforceSeeder::new(&pool).seed_all().await;
+
+    let query_handler = WorkforceQueryHandler::new(&pool);
+
+    let arg_options = cli::main().unwrap();
+
+    if let Some(view_arg) = arg_options.view() {
+        handle_view(&view_arg, query_handler).await;
+    }
+
+    if let Some(add_arg) = arg_options.add() {}
+    Ok(())
+}
+
+//
 #[derive(Debug)]
 enum ViewResult {
     Employees(Vec<Employee>),
@@ -71,39 +109,21 @@ async fn handle_view(table_arg: &str, query_handler: WorkforceQueryHandler<'_>) 
     };
 }
 
-#[tokio::main]
-async fn main() -> Result<(), String> {
-    // Tell the compiler to look for a .env file
-    dotenv().ok();
+//
+#[derive(Debug)]
+enum AddResult {
+    Employees(Vec<Employee>),
+    Departments(Vec<Department>),
+    Roles(Vec<Role>),
+    Invalid(String),
+}
 
-    let db_url = match std::env::var("DATABASE_URL") {
-        Ok(url) => url,
-        Err(_) => {
-            println!(
-                "No DATABASE_URL found within environment.\n
-                    Using default dev credentials."
-            );
-
-            "mysql://root:root@localhost/workforce_db".to_string()
-        }
+async fn handle_add(add_arg: &str, query_handler: WorkforceQueryHandler<'_>) {
+    // Initiate prompt flow from user request / argument
+    let result = match add_arg {
+        "employee" => {}
+        "role" => {}
+        "department" => {}
+        _ => (),
     };
-
-    let connection: MySqlConnection = DBConnectionBuilder::default()
-        .establish(db_url)
-        .await
-        .build();
-
-    let pool = connection.pool();
-
-    //  WorkforceSeeder::new(&pool).seed_all().await;
-
-    let query_handler = WorkforceQueryHandler::new(&pool);
-
-    let arg_options = cli::main().unwrap();
-
-    if let Some(view_arg) = arg_options.view() {
-        handle_view(&view_arg, query_handler).await;
-    }
-
-    Ok(())
 }

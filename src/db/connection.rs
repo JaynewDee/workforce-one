@@ -30,13 +30,3 @@ impl DBConnectionBuilder {
         MySqlConnection { pool }
     }
 }
-
-pub struct DBConnectionHandler {
-    connection: MySqlConnection,
-}
-
-impl DBConnectionHandler {
-    pub fn new(connection: MySqlConnection) -> Self {
-        DBConnectionHandler { connection }
-    }
-}
