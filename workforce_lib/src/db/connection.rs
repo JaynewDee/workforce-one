@@ -1,5 +1,3 @@
-extern crate dotenvy;
-
 use sqlx::{MySql, MySqlPool, Pool};
 
 pub struct MySqlConnection {

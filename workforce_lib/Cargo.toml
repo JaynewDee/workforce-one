@@ -1,14 +1,12 @@
 [package]
-name = "workforce-one"
+name = "workforce"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-workforce = { path = "workforce_lib"}
 chrono = "0.4.24"
 dotenvy = "0.15.7"
 sqlx = { version = "0.6.3", features = [ "runtime-tokio-native-tls", "mysql", "macros" ] }
 tokio = { version = "1.28.1", features = ["macros"] }
-

@@ -1,5 +1,3 @@
-extern crate sqlx;
-
 mod connection;
 mod models;
 mod query;

@@ -1,12 +1,9 @@
-extern crate chrono;
-extern crate dotenvy;
-
-mod cli;
-mod db;
-
-use db::{DBConnectionBuilder, Department, Employee, MySqlConnection, Role, WorkforceQueryHandler};
 use dotenvy::dotenv;
 use sqlx::Row;
+use workforce::cli;
+use workforce::db::{
+    DBConnectionBuilder, Department, Employee, MySqlConnection, Role, WorkforceQueryHandler,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
@@ -35,13 +32,8 @@ async fn main() -> Result<(), String> {
 
     let query_handler = WorkforceQueryHandler::new(&pool);
 
-    let arg_options = cli::main().unwrap();
+    let prompt_handler = cli::main().unwrap();
 
-    if let Some(view_arg) = arg_options.view() {
-        handle_view(&view_arg, query_handler).await;
-    }
-
-    if let Some(add_arg) = arg_options.add() {}
     Ok(())
 }
 
@@ -54,7 +46,7 @@ enum ViewResult {
     Invalid(String),
 }
 
-async fn handle_view(table_arg: &str, query_handler: WorkforceQueryHandler<'_>) {
+async fn handle_view(table_arg: &str, query_handler: &WorkforceQueryHandler<'_>) {
     let result = match table_arg {
         "employees" => {
             let employees = query_handler.view_employees().await.unwrap();
@@ -109,16 +101,7 @@ async fn handle_view(table_arg: &str, query_handler: WorkforceQueryHandler<'_>) 
     };
 }
 
-//
-#[derive(Debug)]
-enum AddResult {
-    Employees(Vec<Employee>),
-    Departments(Vec<Department>),
-    Roles(Vec<Role>),
-    Invalid(String),
-}
-
-async fn handle_add(add_arg: &str, query_handler: WorkforceQueryHandler<'_>) {
+async fn handle_add(add_arg: &str, query_handler: &WorkforceQueryHandler<'_>) {
     // Initiate prompt flow from user request / argument
     let result = match add_arg {
         "employee" => {}
