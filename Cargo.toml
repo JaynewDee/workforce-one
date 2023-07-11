@@ -11,4 +11,5 @@ chrono = "0.4.24"
 dotenvy = "0.15.7"
 sqlx = { version = "0.6.3", features = [ "runtime-tokio-native-tls", "mysql", "macros" ] }
 tokio = { version = "1.28.1", features = ["macros"] }
+anyhow = "1.0.71"
 

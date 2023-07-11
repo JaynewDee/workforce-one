@@ -1,3 +1,4 @@
+use chrono::Datelike;
 use dotenvy::dotenv;
 use sqlx::Row;
 use workforce::cli;
@@ -46,7 +47,7 @@ enum ViewResult {
     Invalid(String),
 }
 
-async fn handle_view(table_arg: &str, query_handler: &WorkforceQueryHandler<'_>) {
+async fn handle_view<T: IntoIterator>(table_arg: &str, query_handler: &WorkforceQueryHandler<'_>) {
     let result = match table_arg {
         "employees" => {
             let employees = query_handler.view_employees().await.unwrap();
